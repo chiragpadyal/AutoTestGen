@@ -1,6 +1,7 @@
 # AutoTestGen: A LLM-based java unit test generation and improving tool
 
 ## Introduction
+![img](./media/autotestgen.drawio.png)
 ...
 
 ## Installtion
