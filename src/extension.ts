@@ -1,22 +1,25 @@
 import { ExtensionContext, languages, commands, Disposable, workspace, window, CallHierarchyOutgoingCall, CallHierarchyItem, Range, Position } from 'vscode';
 import { CodelensProvider } from './VsCodeAPI/CodelensProvider';
-import { SidebarProvider } from './VsCodeAPI/SidebarProvider';
 import * as vscode from 'vscode';
 import { showInputBox } from './VsCodeAPI/BasicInputs';
+import { SideBarPanel } from "./panels/SideBarPanel";
+import { ParseTask } from './Workflows/ParseTask';
 
 let disposables: Disposable[] = [];
 
 export function activate(context: ExtensionContext) {
-	const codelensProvider = new CodelensProvider();
-	
-	// Register the Sidebar Panel
-	const sidebarProvider = new SidebarProvider(context.extensionUri);
-	
+
+	let uri = vscode.Uri.file("D:/Code/Code/ChatUniTest/jfreechart");
+	commands.executeCommand('vscode.openFolder', uri);
+
+	const codelensProvider = new CodelensProvider(context.extensionPath);
+
+
+	const parseTask: ParseTask = new ParseTask("temp", context.extensionPath);
+	const explorer = new SideBarPanel(context.extensionUri, context.extensionPath, parseTask);
+
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(
-			"myextension-sidebar",
-			sidebarProvider
-		)
+		vscode.window.registerWebviewViewProvider("myextension-sidebar", explorer)
 	);
 
 	// @ts-ignore
@@ -34,4 +37,15 @@ export function activate(context: ExtensionContext) {
 		window.showInformationMessage(`Generate Start line=${args[0]} End Line = ${args[1]} `);
 		showInputBox();
 	});
+
+	workspace.onDidSaveTextDocument((event) => {
+		if (event.languageId === 'java') {
+			parseTask.updateParsedClassFile(event.fileName);
+		}
+	});	
 }
+
+export function deactivate() {
+	disposables.forEach((d) => d.dispose());
+}
+
