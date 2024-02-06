@@ -34,6 +34,17 @@
           "name": "UnitTest",
           "icon": "media/icon.svg",
           "contextualTitle": "MyExtension"
+        },
+        {
+          "type": "webview",
+          "id": "myextension-sidebar2",
+          "name": "UnitTest2",
+          "icon": "media/icon.svg",
+          "contextualTitle": "MyExtension2"
+        },
+        {
+          "id": "myextension-treeview",
+          "name": "Second Panel"
         }
       ]
     }
@@ -64,6 +75,10 @@
     "vscode-test": "^1.5.0"
   },
   "dependencies": {
+    "@types/mustache": "^4.2.5",
+    "clarifai-nodejs-grpc": "^10.1.1",
+    "maven": "^5.0.0",
+    "mustache": "^4.2.0",
     "tree-sitter": "^0.20.6",
     "tree-sitter-java": "^0.20.2",
     "web-tree-sitter": "^0.20.8"

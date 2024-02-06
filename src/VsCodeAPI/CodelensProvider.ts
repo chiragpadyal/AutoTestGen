@@ -52,7 +52,7 @@ export class CodelensProvider implements CodeLensProvider {
 				return [];				
 			}
 			parsedClass.methods?.forEach(element => {
-				if (!element || !element.star_line || !element.end_line || !element.is_constructor) {
+				if (!element || !element.star_line || !element.end_line || element.is_constructor) {
 					return;
 				}
 				const posX = new Position(element.star_line, 0);

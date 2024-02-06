@@ -5,6 +5,7 @@ import {ParseTask} from "../Workflows/ParseTask"
 import * as Parser from 'web-tree-sitter'
 import * as path from 'path'
 import { LogLevel, Logger } from "../utilities/logger";
+import ExecTest from "../Workflows/ExecTest";
 /**
  * This class manages the state and behavior of HelloWorld webview panels.
  *
@@ -18,11 +19,11 @@ import { LogLevel, Logger } from "../utilities/logger";
 export class SideBarPanel implements WebviewViewProvider {
   _panel?: WebviewView;
   _disposables: Disposable[] = [];
-  orange = Logger.getInstance();
+  logger = Logger.getInstance();
   private parseTask: ParseTask;
 
   constructor(private readonly _extensionUri: Uri, private readonly _extensionPath: string, _parseTask: ParseTask) {
-    this.orange.showChannel();
+    this.logger.showChannel();
     this.parseTask = _parseTask;
   }
 
@@ -136,16 +137,31 @@ export class SideBarPanel implements WebviewViewProvider {
         const text = message.text;
         switch (command) {
           case "hello":
-            // Code that should run in response to the hello message command
             window.showInformationMessage(text);
             return;
           case "parse":
             window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
-
             this.processJavaFiles(window, workspace).then((result) => {
-              this.orange.log( LogLevel.INFO , "parse", `Parsing ${text.name} ...`);
+              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ...`);
               this.parseTask.parseProject(text.uri, result[0], result[1]);
+            }).finally(() => {
+              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ... Done`);
+              webview.postMessage({ command: "parse-done", text: "Done" });
             });
+          case "compile":
+            this.logger.log( LogLevel.INFO , "compile", `Compiling ${text.uri} ...`);
+            try{
+              new ExecTest(text.uri).runCompile().then(() => {
+                this.logger.log( LogLevel.INFO , "compile", `Compile ... Done`);
+              }).catch((e: any) => {
+                this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${JSON.stringify(e)}... Failed`);
+              });
+            } catch (e: any) {
+              this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${e} ... Failed`);
+            }
+            return;
+          case "health":
+            this.logger.log( LogLevel.INFO , "health", `Health Check ...`);
             return;
           default:
             return;

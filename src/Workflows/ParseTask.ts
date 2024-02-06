@@ -107,20 +107,12 @@ class ParseTask {
     }
 
     private exportResult(data: any, out: string): void {
-        this.logger.log('INFO', 'ParseTask', `Exporting result to ${out}`);
-        
         try {
             const directory = path.dirname(out);
-            
             if (!fs.existsSync(directory)) {
-                this.logger.log('INFO', 'ParseTask', `Creating directory: ${directory}`);
                 fs.mkdirSync(directory, { recursive: true });
             }
-    
-            this.logger.log('INFO', 'ParseTask', `Writing data to file: ${out}`);
             fs.writeFileSync(out, JSON.stringify(data));
-            
-            this.logger.log('INFO', 'ParseTask', `Export successful.`);
         } catch (err) {
             this.logger.log('ERROR', 'ParseTask', `Error exporting result: ${err}`);
         }

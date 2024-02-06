@@ -16,6 +16,7 @@
   let temp = "";
   let projectFolder = [];
   let selected ;
+  let btnRef;
 
 
   provideVSCodeDesignSystem().register(
@@ -33,8 +34,30 @@
     });
   }
 
+  function checkHealth() {
+    vscode.postMessage({
+      command: "health",
+      text: "Howdy!",
+    });
+  }
+
+  function save() {
+    var data = projectFolder[selected.selectedIndex];
+    if (!data) {
+      return;
+    }
+    vscode.postMessage({
+      command: "compile",
+      text: data || "..."
+    });
+  }
+
   function parseRequest() {
     var data = projectFolder[selected.selectedIndex];
+    if (!data) {
+      return;
+    }
+    btnRef.disabled = true;
     vscode.postMessage({
       command: "parse",
       text: data || "...",
@@ -48,6 +71,9 @@
             switch (event.data.command) {
                 case 'parse':
                     projectFolder = event.data.text || [];
+                    break;
+                case 'parse-done':
+                    btnRef.disabled = false;
                     break;
                 default:
                     break;
@@ -72,7 +98,7 @@
 <!-- dropdown from  0 to 10 number -->
 <div class="dropdown-container">
   <label for="my-dropdown">Temperature: </label>
-  <vscode-dropdown class="form-control" id="exampleFormControlSelect1">
+  <vscode-dropdown class="form-control full" id="exampleFormControlSelect1">
     <vscode-option>0</vscode-option>
     <vscode-option>1</vscode-option>
     <vscode-option>2</vscode-option>
@@ -90,7 +116,7 @@
 <!-- project folder -->
 <div class="dropdown-container">
     <label for="projectFolder">Projects: </label>
-    <vscode-dropdown class="form-control" id="projectFolder" bind:this={selected}>
+    <vscode-dropdown class="form-control full" id="projectFolder" bind:this={selected}>
         {#each projectFolder as folder}
             <vscode-option value={folder.name}
             >{folder.name}</vscode-option>
@@ -98,20 +124,21 @@
     </vscode-dropdown>
   </div>
 
-<vscode-divider></vscode-divider>
+<!-- <vscode-divider></vscode-divider> -->
 
-<vscode-text-field
-  class="form-control"
+<!-- <vscode-text-field
+  class="form-control full"
   rows="3"
   id="text"
   style="resize: vertical;"
   minlength="15"
   value={sysText}
   placeholder="Edit System prompt here...">System Prompt</vscode-text-field
->
+> -->
 
-<vscode-text-field
-  class="form-control"
+<!-- <vscode-text-field
+
+  class="form-control full"
   rows="10"
   id="text"
   style="resize: vertical;"
@@ -119,18 +146,25 @@
   value={cusText}
   placeholder="Edit Custom prompt here..."
   >Custom Prompt:
-</vscode-text-field>
-<vscode-button on:click={handleHowdyClick}>Save</vscode-button>
-<vscode-button on:click={handleHowdyClick}>Restore to Default</vscode-button>
-<vscode-button on:click={parseRequest}>Parse Projects</vscode-button>
-
+</vscode-text-field> -->
+<vscode-divider></vscode-divider>
+<vscode-button class="full" on:click={save}>Compile</vscode-button>
+<vscode-button class="full" on:click={parseRequest} bind:this={btnRef}>Parse Projects</vscode-button>
+<vscode-button class="full" on:click={checkHealth}>Doctor</vscode-button>
 <style>
+
+  .full {
+    width: 100%;
+    margin-bottom: 0.5em;
+  }
+
   .dropdown-container {
     box-sizing: border-box;
     display: flex;
     flex-flow: column nowrap;
     align-items: flex-start;
     justify-content: flex-start;
+    width: 100%;
   }
 
   .dropdown-container label {

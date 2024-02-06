@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { showInputBox } from './VsCodeAPI/BasicInputs';
 import { SideBarPanel } from "./panels/SideBarPanel";
 import { ParseTask } from './Workflows/ParseTask';
+import { TreeDataProvider, TreeItem } from './panels/TreePanel';
 
 let disposables: Disposable[] = [];
 
@@ -21,6 +22,17 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider("myextension-sidebar", explorer)
 	);
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider("myextension-sidebar2", explorer)
+	);
+
+		context.subscriptions.push(
+			vscode.window.registerTreeDataProvider(
+			  'myextension-treeview', new TreeDataProvider()
+			)
+		  )
+
 
 	// @ts-ignore
 	languages.registerCodeLensProvider("*", codelensProvider);
