@@ -22,8 +22,8 @@
     },
     "commands": [
       {
-        "command": "hello-world.showHelloWorld",
-        "title": "Hello World (Svelte): Show"
+        "command": "autogen.settings",
+        "title": "Auto Test Gen Settings"
       }
     ],
     "views": {
@@ -31,20 +31,20 @@
         {
           "type": "webview",
           "id": "myextension-sidebar",
-          "name": "UnitTest",
+          "name": "Auto Gen",
           "icon": "media/icon.svg",
           "contextualTitle": "MyExtension"
         },
         {
           "type": "webview",
           "id": "myextension-sidebar2",
-          "name": "UnitTest2",
+          "name": "Chat Bot",
           "icon": "media/icon.svg",
           "contextualTitle": "MyExtension2"
         },
         {
           "id": "myextension-treeview",
-          "name": "Second Panel"
+          "name": "Result"
         }
       ]
     }
@@ -53,12 +53,14 @@
     "install:all": "npm install && cd webview-ui && npm install",
     "start:webview": "cd webview-ui && npm run dev",
     "build:webview": "cd webview-ui && npm run build",
+    "start:chat": "cd webview-ui-chat && npm run dev",
+    "build:chat": "cd webview-ui-chat && npm run build",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "rebuild": "electron-rebuild -f -w tree-sitter -v 18.18.0"
+    "rebuild": "electron-rebuild -f -w tree-sitter -v 18.18.0",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.6.0",
@@ -67,6 +69,8 @@
     "@types/vscode": "^1.46.0",
     "@typescript-eslint/eslint-plugin": "^4.14.1",
     "@typescript-eslint/parser": "^4.14.1",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.9",
     "eslint": "^7.19.0",
     "glob": "^7.1.6",
     "prettier": "^2.2.1",
@@ -75,12 +79,18 @@
     "vscode-test": "^1.5.0"
   },
   "dependencies": {
+    "@testdeck/mocha": "^0.3.3",
     "@types/mustache": "^4.2.5",
+    "chai": "^5.0.3",
     "clarifai-nodejs-grpc": "^10.1.1",
     "maven": "^5.0.0",
+    "mocha": "^10.2.0",
     "mustache": "^4.2.0",
+    "nyc": "^15.1.0",
     "tree-sitter": "^0.20.6",
     "tree-sitter-java": "^0.20.2",
+    "ts-mockito": "^2.6.1",
+    "ts-node": "^10.9.2",
     "web-tree-sitter": "^0.20.8"
   }
 }

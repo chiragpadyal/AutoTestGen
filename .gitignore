@@ -6,3 +6,5 @@ node_modules
 .deta
 secret.js
 temp
+.env
+ChatUniTest.code-workspace

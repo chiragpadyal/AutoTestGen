@@ -41,7 +41,12 @@ export class Prompting {
     }
 
     private runPrompt(prompt: string): string {
-        return askGpt(prompt);
+        askGpt(prompt).then((response) => {
+            return response;
+        }).catch((error) => {
+            return "Server Down! try later...";
+        });
+        return 'Server Down! try later...';
     }
 
 }

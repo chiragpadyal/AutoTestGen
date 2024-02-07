@@ -1,12 +1,8 @@
 import { Disposable, Webview, WebviewView, window, Uri, ViewColumn, WebviewViewProvider, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import {ParseTask} from "../Workflows/ParseTask"
-import * as Parser from 'web-tree-sitter'
-import * as path from 'path'
 import { LogLevel, Logger } from "../utilities/logger";
-import ExecTest from "../Workflows/ExecTest";
-import { healthCheck } from "../utilities/healthCheck";
+import askGpt from "../utilities/askGpt";
 /**
  * This class manages the state and behavior of HelloWorld webview panels.
  *
@@ -17,15 +13,13 @@ import { healthCheck } from "../utilities/healthCheck";
  * - Setting the HTML (and by proxy CSS/JavaScript) content of the webview panel
  * - Setting message listeners so data can be passed between the webview and extension
  */
-export class SideBarPanel implements WebviewViewProvider {
+export class ChatSideBarPanel implements WebviewViewProvider {
   _panel?: WebviewView;
   _disposables: Disposable[] = [];
   logger = Logger.getInstance();
-  private parseTask: ParseTask;
 
-  constructor(private readonly _extensionUri: Uri, private readonly _extensionPath: string, _parseTask: ParseTask) {
+  constructor(private readonly _extensionUri: Uri) {
     this.logger.showChannel();
-    this.parseTask = _parseTask;
   }
 
   public resolveWebviewView(webviewView: WebviewView) {
@@ -41,29 +35,8 @@ export class SideBarPanel implements WebviewViewProvider {
     // Set up message passing from the webview to the extension
     this._setWebviewMessageListener(this._panel.webview);
 
-    // Update workspace folders
-    this._updateWorkspaceFolders(this._panel.webview);
-
   }
 
-
-  private _updateWorkspaceFolders(webview: Webview) {
-
-    let _arr = () => {
-      let projects = workspace.workspaceFolders?.map(folder => {
-        return {
-          "index": folder.index,
-          "name": folder.name,
-          "uri": folder.uri.fsPath
-        }
-      }) || [];
-      webview.postMessage({ command: "parse", text: projects });
-    }
-    _arr();
-    workspace.onDidChangeWorkspaceFolders(() => {
-      _arr();
-    });
-  }
 
 
   /**
@@ -79,9 +52,9 @@ export class SideBarPanel implements WebviewViewProvider {
    */
   private _getWebviewContent(webview: Webview, extensionUri: Uri) {
     // The CSS file from the Svelte build output
-    const stylesUri = getUri(webview, extensionUri, ["webview-ui", "public", "build", "bundle.css"]);
+    const stylesUri = getUri(webview, extensionUri, ["webview-ui-chat", "public", "build", "bundle.css"]);
     // The JS file from the Svelte build output
-    const scriptUri = getUri(webview, extensionUri, ["webview-ui", "public", "build", "bundle.js"]);
+    const scriptUri = getUri(webview, extensionUri, ["webview-ui-chat", "public", "build", "bundle.js"]);
 
     const nonce = getNonce();
 
@@ -105,25 +78,6 @@ export class SideBarPanel implements WebviewViewProvider {
 
 
 
-  public async processJavaFiles(window: any, workspace: any) {
-    let tests = [];
-    let mains = [];
-    const uris = await workspace.findFiles("**/*.java");
-
-    for (const uri of uris) {
-      const document = await workspace.openTextDocument(uri);
-      const text = document.getText();
-
-      if (text.match(new RegExp("@Test", "gm"))) {
-        tests.push(uri.fsPath);
-      } else {
-        mains.push(uri.fsPath);
-      }
-    }
-
-    return [tests, mains];
-  }
-
   /**
    * Sets up an event listener to listen for messages passed from the webview context and
    * executes code based on the message that is recieved.
@@ -140,31 +94,15 @@ export class SideBarPanel implements WebviewViewProvider {
           case "hello":
             window.showInformationMessage(text);
             return;
-          case "parse-project":
-            window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
-            this.processJavaFiles(window, workspace).then((result) => {
-              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ...`);
-              this.parseTask.parseProject(text.uri, result[0], result[1]);
-            }).finally(() => {
-              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ... Done`);
-              webview.postMessage({ command: "parse-done", text: "Done" });
+          case "ask":
+            this.logger.log(LogLevel.INFO,  'ASK-BOT', `Received message from webview: ${text}`);
+            let response = askGpt(text).then((response) => {
+              this.logger.log(LogLevel.INFO,  'ASK-BOT', `Response from GPT-3: ${response}`);
+              webview.postMessage({ command: "reply", text: response });
+            }).catch((error) => {
+              this.logger.log(LogLevel.ERROR,  'ASK-BOT', `Error from GPT-3: ${error}`);
+              webview.postMessage({ command: "reply", text: "Server Down! try later..." });
             });
-            return;
-          case "compile":
-            this.logger.log( LogLevel.INFO , "compile", `Compiling ${text.uri} ...`);
-            try{
-              new ExecTest(text.uri).runCompile().then(() => {
-                this.logger.log( LogLevel.INFO , "compile", `Compile ... Done`);
-              }).catch((e: any) => {
-                this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${JSON.stringify(e)}... Failed`);
-              });
-            } catch (e: any) {
-              this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${e} ... Failed`);
-            }
-            return;
-          case "health":
-            this.logger.log( LogLevel.INFO , "health", `Health Check ...`);
-            healthCheck(window);
             return;
           default:
             return;
