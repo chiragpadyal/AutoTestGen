@@ -59,7 +59,7 @@
     }
     btnRef.disabled = true;
     vscode.postMessage({
-      command: "parse",
+      command: "parse-project",
       text: data || "...",
     });
   }
