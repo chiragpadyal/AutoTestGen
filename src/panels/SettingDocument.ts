@@ -34,10 +34,4 @@ export class SettingDocument implements TextDocumentContentProvider {
         this.onDidChangeEmitter.fire(uri);
         return JSON.stringify(this.settings, null, 4);
     }
-
-    // async saveSetting(settings: UserSettingType) {
-    //     // Update the API key in secret storage
-    //     await this.secrets.store("autoTestGen.apiKey", settings.apiKey);
-    //     this.settings = settings;
-    // }
 }

@@ -55,6 +55,8 @@ export class ChatSideBarPanel implements WebviewViewProvider {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui-chat", "public", "build", "bundle.css"]);
     // The JS file from the Svelte build output
     const scriptUri = getUri(webview, extensionUri, ["webview-ui-chat", "public", "build", "bundle.js"]);
+    const codiconsUri = getUri(webview ,extensionUri, ['node_modules', '@vscode/codicons', 'dist', 'codicon.css']);
+
 
     const nonce = getNonce();
 
@@ -66,8 +68,9 @@ export class ChatSideBarPanel implements WebviewViewProvider {
           <title>Hello World</title>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <link href="${codiconsUri}" rel="stylesheet" />
           <script defer nonce="${nonce}" src="${scriptUri}"></script>
         </head>
         <body>

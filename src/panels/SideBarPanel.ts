@@ -88,6 +88,7 @@ export class SideBarPanel implements WebviewViewProvider {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "public", "build", "bundle.css"]);
     // The JS file from the Svelte build output
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "public", "build", "bundle.js"]);
+    const codiconsUri = getUri(webview ,extensionUri, ['node_modules', '@vscode/codicons', 'dist', 'codicon.css']);
 
     const nonce = getNonce();
 
@@ -99,8 +100,9 @@ export class SideBarPanel implements WebviewViewProvider {
           <title>Hello World</title>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <link href="${codiconsUri}" rel="stylesheet" />
           <script defer nonce="${nonce}" src="${scriptUri}"></script>
         </head>
         <body>
@@ -147,15 +149,20 @@ export class SideBarPanel implements WebviewViewProvider {
           return;
         case "parse-project":
           window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
+          let result = null;
           try {
-            const result = await this.processJavaFiles(window, workspace);
+            result = await this.processJavaFiles(window, workspace);
             this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ...`);
             this.parseTask.parseProject(text.uri, result[0], result[1]);
           } catch (error) {
             this.logger.log(LogLevel.ERROR, "parse", `Parsing ${text.name} ... Failed: ${error}`);
           } finally {
             this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ... Done`);
-            webview.postMessage({ command: "parse-done", text: "Done" });
+            if (result)
+            webview.postMessage({ command: "parse-done", text: {
+              "no-of-tests": result[0].length || 0,
+              "no-of-mains": result[1].length || 0
+            } });
           }
           return;
         case "compile":

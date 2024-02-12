@@ -9,16 +9,10 @@
   import { onMount } from "svelte";
 
   // Initialize the VS Code Design System
-  provideVSCodeDesignSystem().register(
-    vsCodeButton(),
-    vsCodeDivider(),
-    vsCodeTextField()
-  );
+  provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeDivider(), vsCodeTextField());
 
-  let prompt = "Hii";
-  let messages = [
-    { role: "bot", content: "Hello, how can I assist you today?" }
-];
+  let prompt = "";
+  let messages = [{ role: "bot", content: "Hello, how can I assist you today?" }];
   let textField: any = null;
   const ask = () => {
     messages.push({ role: "user", content: prompt });
@@ -29,25 +23,25 @@
   };
 
   onMount(() => {
-    window.addEventListener('message', event => {
-            console.log(event.data);
-            switch (event.data.command) {
-                case 'reply':
-                    console.log('Received a reply from the bot');
-                    messages.push({
-                        role: 'bot',
-                        content: event.data.text
-                    });
-                    messages = [...messages]; // Force Svelte to re-render the messages
-                    break;
-                default:
-                    break;
-            }
-        });
-      if (textField.addEventListener !== undefined) {
-        textField.addEventListener("keyup", (event: any) => {
-          prompt = event.target.value;
-        });
+    window.addEventListener("message", (event) => {
+      console.log(event.data);
+      switch (event.data.command) {
+        case "reply":
+          console.log("Received a reply from the bot");
+          messages.push({
+            role: "bot",
+            content: event.data.text,
+          });
+          messages = [...messages]; // Force Svelte to re-render the messages
+          break;
+        default:
+          break;
+      }
+    });
+    if (textField.addEventListener !== undefined) {
+      textField.addEventListener("keyup", (event: any) => {
+        prompt = event.target.value;
+      });
     }
   });
 </script>
@@ -62,19 +56,31 @@
   {/each}
 </div>
 
-<div class="full">
-  <vscode-text-field
-   bind:this={textField}
-   value={prompt}
-    class="form-control search-box"
-    rows="3"
-    style="resize: vertical;"
-    minlength="15"
-    placeholder="Type your message here..."></vscode-text-field>
-  <vscode-button class="btn" on:click={ask}>Send</vscode-button>
+<div class="search-container">
+  <div class="full">
+    <vscode-text-field
+      bind:this={textField}
+      value={prompt}
+      class="form-control search-box"
+      rows="3"
+      style="resize: vertical;"
+      minlength="15"
+      placeholder="Type your message here..."
+    >
+      <vscode-button slot="end" appearance="icon" class="btn" on:click={ask}>
+        <span class="codicon codicon-search"></span>
+      </vscode-button>
+    </vscode-text-field>
+  </div>
 </div>
 
 <style>
+  .search-container {
+    position: fixed;
+    bottom: 0;
+    width: 90%;
+    padding-bottom: 5%;
+  }
   .chat-container {
     height: 90vh; /* Adjust the height as needed */
     overflow-y: auto; /* Add a scrollbar if the content overflows */
@@ -95,8 +101,7 @@
 
   .full {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: end;
   }
 
   .search-box {
@@ -106,9 +111,5 @@
 
   .btn {
     flex-grow: 2; /* Take up 20% of the space */
-  }
-
-  .form-control {
-    margin-top: 10px;
   }
 </style>
