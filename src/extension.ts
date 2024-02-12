@@ -1,90 +1,120 @@
-import { ExtensionContext, languages, commands, Disposable, workspace, window, CallHierarchyOutgoingCall, CallHierarchyItem, Range, Position } from 'vscode';
+import {
+	Uri,
+	ExtensionContext,
+	languages,
+	commands,
+	Disposable,
+	workspace,
+	window,
+	ExtensionMode,
+} from 'vscode';
 import { CodelensProvider } from './VsCodeAPI/CodelensProvider';
-import * as vscode from 'vscode';
-import { showInputBox } from './VsCodeAPI/BasicInputs';
 import { SideBarPanel } from "./panels/SideBarPanel";
 import { ParseTask } from './Workflows/ParseTask';
-import { TreeDataProvider, TreeItem } from './panels/TreePanel';
+import { TreeDataProvider } from './panels/TreePanel';
 import { ChatSideBarPanel } from './panels/ChatSideBarPanel';
 import 'dotenv/config'
+import { SettingDocument } from './panels/SettingDocument';
 
 let disposables: Disposable[] = [];
 
 export function activate(context: ExtensionContext) {
 
-	let uri = vscode.Uri.file("D:/Code/Code/ChatUniTest/jfreechart");
-	commands.executeCommand('vscode.openFolder', uri);
+	/* ------------------ Open jfreechart project in workspace ------------------ */
+	// TODO: Remove this only for development 
+	if(context.extensionMode === ExtensionMode.Development || context.extensionMode === ExtensionMode.Test) {
+		let uri = Uri.file("D:/Code/Code/ChatUniTest/jfreechart");
+		commands.executeCommand('vscode.openFolder', uri);
+	}
 
-	const codelensProvider = new CodelensProvider(context.extensionPath);
-	const myScheme = 'cowsay';
+	if (workspace.workspaceFolders === undefined) {
+		// no workspace is open
+		return;
+	} else if (!context.storageUri && context.storageUri === undefined) {
+		// stroageUri is not defined
+		return;
+	}
 
+	/* ----------------------------- webui provider ----------------------------- */
+	// TODO: rm context.extionPath only used to get assests/tree-sitter-java.wasm
+	const parseTask: ParseTask = new ParseTask("temp", context.storageUri, context.extensionPath);
+	const sidePanel = new SideBarPanel(context.extensionUri, parseTask);
+	context.subscriptions.push(
+		window.registerWebviewViewProvider("myextension-sidebar", sidePanel)
+	);
 
-	const parseTask: ParseTask = new ParseTask("temp", context.extensionPath);
-	const sidePanel = new SideBarPanel(context.extensionUri, context.extensionPath, parseTask);
+	/* ----------------------------- chat side panel ----------------------------- */
 	const chatSidePanel = new ChatSideBarPanel(context.extensionUri);
-
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider("myextension-sidebar", sidePanel)
+		window.registerWebviewViewProvider("myextension-sidebar2", chatSidePanel)
 	);
 
+	/* ----------------------------- tree view provider ----------------------------- */
+	const treeData = new TreeDataProvider();
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider("myextension-sidebar2", chatSidePanel)
+		window.registerTreeDataProvider(
+			'myextension-treeview', treeData
+		)
 	);
 
-		context.subscriptions.push(
-			vscode.window.registerTreeDataProvider(
-			  'myextension-treeview', new TreeDataProvider()
-			)
-		  )
+	/* ----------------------------- code lens provider ----------------------------- */
+	const codelensProvider = new CodelensProvider(context.storageUri);
+	context.subscriptions.push(
+		languages.registerCodeLensProvider("*", codelensProvider)
+	);
+
+	/* ----------------------------- register content provider ----------------------------- */
+	const myProvider = new SettingDocument(context.globalState, context.secrets)
+	myProvider.initialize().then(() => {
+		context.subscriptions.push(workspace.registerTextDocumentContentProvider('settings', myProvider));
+	});
 
 
-	// @ts-ignore
-	languages.registerCodeLensProvider("*", codelensProvider);
 
-	const myProvider = new class implements vscode.TextDocumentContentProvider {
+	/* ----------------------------- register commands ----------------------------- */
+	context.subscriptions.push(
+		commands.registerCommand('autogen.settings', async () => {
+			let uri = Uri.parse('settings:' + 'settings.json');
+			let doc = await workspace.openTextDocument(uri);
+			await window.showTextDocument(doc, { preview: false });
+	}));
 
-		// emitter and its event
-		onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
-		onDidChange = this.onDidChangeEmitter.event;
-
-		provideTextDocumentContent(uri: vscode.Uri): string {
-			// simply invoke cowsay, use uri-path as text
-			// return cowsay.say({ text: uri.path });
-			return `
-			{
-				"apiKey": "",
+	context.subscriptions.push(
+		commands.registerCommand('autogen.api-key', async () => {
+			const input = await window.showInputBox();
+			if (input && input.length > 3) {
+				await context.secrets.store("autoTestGen.apiKey", input);
+				window
+				.showInformationMessage(
+				  "API Key saved. Please reload the window to apply the changes.",
+				  { title: "API Key saved" }
+				)
+				.then((item) => {
+				  if (item) {
+					commands.executeCommand("workbench.action.reloadWindow");
+				  }
+				});
+			}else{
+				window.showErrorMessage("Invalid input");
 			}
-			`
-		}
-	};
-	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(myScheme, myProvider));
+	}));
 
-	vscode.commands.registerCommand('autogen.settings', async () => {
-		  let uri = vscode.Uri.parse('cowsay:' + 'settings.json');
-		  let doc = await vscode.workspace.openTextDocument(uri
-			); // calls back into the provider
-		  await vscode.window.showTextDocument(doc, { preview: false });
-	  });
-
-	  
-	commands.registerCommand("codelens-sample.enableCodeLens", () => {
-		workspace.getConfiguration("codelens-sample").update("enableCodeLens", true, true);
-	});
-
-	commands.registerCommand("codelens-sample.disableCodeLens", () => {
-		workspace.getConfiguration("codelens-sample").update("enableCodeLens", false, true);
-	});
-
-	commands.registerCommand("codelens-sample.codelensAction", (...args) => {
+	context.subscriptions.push(
+		// TODO: replace with proper name command
+		commands.registerCommand("codelens-sample.codelensAction", (...args) => {
 		window.showInformationMessage(`Generate Start line=${args[0]} End Line = ${args[1]} `);
-		showInputBox();
-	});
+	}));
+	
 
-	workspace.onDidSaveTextDocument((event) => {
-		if (event.languageId === 'java') {
-			parseTask.updateParsedClassFile(event.fileName);
-		}
-	});	
+	/* ----------------------------- register events ----------------------------- */
+	context.subscriptions.push(
+		// updates the parsed class file on save
+		workspace.onDidSaveTextDocument((event) => {
+			if (event.languageId === 'java') {
+				parseTask.updateParsedClassFile(event.fileName);
+			}
+	}));
+
 }
 
 export function deactivate() {
