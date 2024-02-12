@@ -8,9 +8,9 @@ import {
 	window,
 	ExtensionMode,
 } from 'vscode';
-import { CodelensProvider } from './VsCodeAPI/CodelensProvider';
+import { CodelensProvider } from './vscodeAPI/CodelensProvider';
 import { SideBarPanel } from "./panels/SideBarPanel";
-import { ParseTask } from './Workflows/ParseTask';
+import { ParseTask } from './workflows/ParseTask';
 import { TreeDataProvider } from './panels/TreePanel';
 import { ChatSideBarPanel } from './panels/ChatSideBarPanel';
 import 'dotenv/config'

@@ -1,11 +1,11 @@
 import { Disposable, Webview, WebviewView, window, Uri, ViewColumn, WebviewViewProvider, workspace } from "vscode";
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
-import {ParseTask} from "../Workflows/ParseTask"
+import {ParseTask} from "../workflows/ParseTask"
 import * as Parser from 'web-tree-sitter'
 import * as path from 'path'
 import { LogLevel, Logger } from "../utilities/logger";
-import ExecTest from "../Workflows/ExecTest";
+import ExecTest from "../workflows/ExecTest";
 import { healthCheck } from "../utilities/healthCheck";
 /**
  * This class manages the state and behavior of HelloWorld webview panels.
