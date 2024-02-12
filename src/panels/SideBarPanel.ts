@@ -23,7 +23,13 @@ export class SideBarPanel implements WebviewViewProvider {
   logger = Logger.getInstance();
   private parseTask: ParseTask;
 
-  constructor(private readonly _extensionUri: Uri, private readonly _extensionPath: string, _parseTask: ParseTask) {
+  /**
+   * Initializes a new instance of the SideBar class.
+   *
+   * @param _extensionUri The URI of the context.extensionUri
+   * @param _parseTask The parse task instance
+   */
+  constructor(private readonly _extensionUri: Uri, _parseTask: ParseTask) {
     this.logger.showChannel();
     this.parseTask = _parseTask;
   }
@@ -131,50 +137,51 @@ export class SideBarPanel implements WebviewViewProvider {
    * @param webview A reference to the extension webview
    * @param context A reference to the extension context
    */
-  private _setWebviewMessageListener(webview: Webview) {
-    webview.onDidReceiveMessage(
-      (message: any) => {
-        const command = message.command;
-        const text = message.text;
-        switch (command) {
-          case "hello":
-            window.showInformationMessage(text);
-            return;
-          case "parse-project":
-            window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
-            this.processJavaFiles(window, workspace).then((result) => {
-              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ...`);
-              this.parseTask.parseProject(text.uri, result[0], result[1]);
-            }).finally(() => {
-              this.logger.log( LogLevel.INFO , "parse", `Parsing ${text.name} ... Done`);
-              webview.postMessage({ command: "parse-done", text: "Done" });
-            });
-            return;
-          case "compile":
-            this.logger.log( LogLevel.INFO , "compile", `Compiling ${text.uri} ...`);
-            try{
-              new ExecTest(text.uri).runCompile().then(() => {
-                this.logger.log( LogLevel.INFO , "compile", `Compile ... Done`);
-              }).catch((e: any) => {
-                this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${JSON.stringify(e)}... Failed`);
-              });
-            } catch (e: any) {
-              this.logger.log( LogLevel.ERROR , "compile", `Compile ${text.uri} ${e} ... Failed`);
-            }
-            return;
-          case "health":
-            this.logger.log( LogLevel.INFO , "health", `Health Check ...`);
-            healthCheck(window);
-            return;
-          default:
-            return;
-        }
-      },
-      undefined,
-      this._disposables
-    );
+  private async _setWebviewMessageListener(webview: Webview) {
+    webview.onDidReceiveMessage(async (message: any) => {
+      const command = message.command;
+      const text = message.text;
+      switch (command) {
+        case "hello":
+          window.showInformationMessage(text);
+          return;
+        case "parse-project":
+          window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
+          try {
+            const result = await this.processJavaFiles(window, workspace);
+            this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ...`);
+            this.parseTask.parseProject(text.uri, result[0], result[1]);
+          } catch (error) {
+            this.logger.log(LogLevel.ERROR, "parse", `Parsing ${text.name} ... Failed: ${error}`);
+          } finally {
+            this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ... Done`);
+            webview.postMessage({ command: "parse-done", text: "Done" });
+          }
+          return;
+        case "compile":
+          this.logger.log(LogLevel.INFO, "compile", `Compiling ${text.uri} ...`);
+          try {
+            const execTest = new ExecTest(text.uri);
+            await execTest.runCompile();
+            this.logger.log(LogLevel.INFO, "compile", `Compile ... Done`);
+            window.showInformationMessage(`Compiled ${text.uri}`);
+            await execTest.runTest("test");
+            this.logger.log(LogLevel.INFO, "compile", `Test ... Done`);
+            window.showInformationMessage(`Tested ${text.uri}`);
+          } catch (error) {
+            this.logger.log(LogLevel.ERROR, "compile", `Compile/Test ${text.uri} ... Failed: ${error}`);
+          }
+          return;
+        case "health":
+          this.logger.log(LogLevel.INFO, "health", `Health Check ...`);
+          healthCheck(window);
+          return;
+        default:
+          return;
+      }
+    }, undefined, this._disposables);
   }
-
+  
 
 
 }

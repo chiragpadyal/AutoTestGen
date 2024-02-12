@@ -1,9 +1,9 @@
-import { debug } from 'console';
-import {CodeLensProvider, CodeLens, EventEmitter, Event, workspace, TextDocument, CancellationToken, Position, ExtensionContext, window, Range} from 'vscode';
+import {CodeLensProvider, CodeLens, EventEmitter, Event, workspace, TextDocument, CancellationToken, Position, ExtensionContext, window, Range, Uri} from 'vscode';
 import { ParsedClassType } from '../types/ParsedClassType';
-import * as fs from 'fs';
 import * as path from 'path';
 import { LogLevel, Logger } from '../utilities/logger';
+
+
 /**
  * CodelensProvider
  */
@@ -14,13 +14,18 @@ export class CodelensProvider implements CodeLensProvider {
 	public readonly onDidChangeCodeLenses: Event<void> = this._onDidChangeCodeLenses.event;
 	private logger: Logger = Logger.getInstance();
 	
-	constructor(private readonly _extensionPath: string) {
+
+	/**
+	 * Initialize CodelensProvider with the vscode storage URL
+	 * @param {Uri} vsStorageURL The URL for vscode storage
+	 */
+	constructor(private readonly vsStorageURL: Uri) {
 		workspace.onDidChangeTextDocument((_) => {
 			this._onDidChangeCodeLenses.fire();
 		});
 	}
 
-	private openParsedClassFile(): ParsedClassType {
+	private async openParsedClassFile(): Promise<ParsedClassType> {
 		const parsedClass: ParsedClassType = {};
 		if (!window.activeTextEditor || !workspace.workspaceFolders) {
 			return parsedClass;
@@ -32,20 +37,30 @@ export class CodelensProvider implements CodeLensProvider {
 			return parsedClass;
 		} 
 
-		const filePath: string = path.join(this._extensionPath, 'temp', workspace.workspaceFolders[0].name , 'main' , path.basename(window.activeTextEditor.document.fileName) + '.json');
-		if (!fs.existsSync(filePath)) {
-			return parsedClass;
+		// const filePath: string = path.join(this.vsStorageURL, 'temp', workspace.workspaceFolders[0].name , 'main' , path.basename(window.activeTextEditor.document.fileName) + '.json');
+		const filePath: Uri = Uri.joinPath(this.vsStorageURL, 'temp', workspace.workspaceFolders[0].name , 'main' , path.basename(window.activeTextEditor.document.fileName) + '.json');
+		let parsedContent = {};
+		try{
+			const fileContent = await workspace.fs.readFile(filePath)
+			const readStr = Buffer.from(fileContent).toString('utf8');
+			parsedContent = JSON.parse(readStr);
+			return parsedContent;
+		} catch (err) {
+			this.logger.log(LogLevel.ERROR, 'CodelensProvider', `Error opening file: ${err}`);
 		}
-		const fileContent = fs.readFileSync(filePath, 'utf8');
-		const parsedContent = JSON.parse(fileContent);
+		// if (!fs.existsSync(filePath)) {
+		// 	return parsedClass;
+		// }
+		// const fileContent = fs.readFileSync(filePath, 'utf8');
+		// const parsedContent = JSON.parse(fileContent);
 		return parsedContent;
 	}
 
 	// @ts-ignore
-	public provideCodeLenses(document: TextDocument, token: CancellationToken): CodeLens[] | Thenable<CodeLens[]> {
+	public async provideCodeLenses(document: TextDocument, token: CancellationToken): CodeLens[] | Thenable<CodeLens[]> {
 
 		if (workspace.getConfiguration("codelens-sample").get("enableCodeLens", true)) {
-			let parsedClass: ParsedClassType = this.openParsedClassFile();
+			let parsedClass: ParsedClassType = await this.openParsedClassFile();
 			this.codeLenses = [];
 
 			if (!parsedClass.methods) {

@@ -1,8 +1,9 @@
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import * as path from 'path';
 import {ParsedClassType, ParsedMethodType} from '../types/ParsedClassType';
 import * as Parser from 'web-tree-sitter';
 import { LogLevel, Logger } from '../utilities/logger';
+import { Uri, workspace } from 'vscode';
 
 
 export default class ClassParser {
@@ -26,11 +27,13 @@ export default class ClassParser {
     }
 
 
-    parseJavaFile(file: string): ParsedClassType {
+    async parseJavaFile(file: string): Promise<ParsedClassType> {
         const classData: ParsedClassType = {};
         const methods: ParsedMethodType[] = [];
         const imports: string[] = [];
-        const content = fs.readFileSync(file, 'utf8');
+        
+        const contentFile = await workspace.fs.readFile(Uri.file(file));
+        const content = Buffer.from(contentFile).toString('utf8');
         this.content = content;
         
         if (!this.parser) {
@@ -83,7 +86,7 @@ export default class ClassParser {
     }
 
 
-    getFunctionName(functionNode: any, blob: string): string {
+    private getFunctionName(functionNode: any, blob: string): string {
         const declarators: any[] = [];
         this.traverseType(functionNode, declarators, `${functionNode.type.split('_')[0]}_declaration`);
         for (const n of declarators[0].children) {
@@ -94,7 +97,7 @@ export default class ClassParser {
         return '';
     }
 
-    matchFromSpan(node: Parser.SyntaxNode, blob: string): string {
+    private matchFromSpan(node: Parser.SyntaxNode, blob: string): string {
         const lines = blob.split('\n');
         const lineStart = node.startPosition.row;
         const lineEnd = node.endPosition.row;
@@ -111,7 +114,7 @@ export default class ClassParser {
         }
     }
 
-    traverseType(node: Parser.SyntaxNode, results: any[], kind: string): void {
+    private traverseType(node: Parser.SyntaxNode, results: any[], kind: string): void {
         if (node.type === kind) {
             results.push(node);
         }
@@ -125,7 +128,7 @@ export default class ClassParser {
 
     
 
-    isMethodBodyEmpty(node: Parser.SyntaxNode): boolean {
+    private isMethodBodyEmpty(node: Parser.SyntaxNode): boolean {
         for (const c of node.children) {
             if (c.type === 'method_body' || c.type === 'constructor_body') {
                 if (c.startPosition.row === c.endPosition.row) {
