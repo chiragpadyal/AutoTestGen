@@ -9,7 +9,7 @@
   } from "@vscode/webview-ui-toolkit";
   import { vscode } from "./utilities/vscode";
   import { onMount } from "svelte";
-
+  import {AllowedTag} from "../../src/types/allowedTags"
   let projectFolder = [];
   let selected ;
   let btnRef;
@@ -93,12 +93,46 @@
                     numberOfTests = event.data.text['no-of-tests'] || 0;
                     numberOfMethods = event.data.text['no-of-mains'] || 0;
                     break;
+                case "reply":
+                    console.log("Received a reply from the bot");
+                    messages.push({
+                      role: event.data.from || "bot",
+                      content: event.data.text,
+                    });
+                    messages = [...messages]; // Force Svelte to re-render the messages
+                    textField.disabled = false; // Re-enable the text field
+
+                    break;
                 default:
                     break;
             }
         });
+
+        if (textField.addEventListener !== undefined) {
+          textField.addEventListener("keyup", (event: any) => {
+            prompt = event.target.value;
+          });
+        }
     });
   
+
+  let prompt = "";
+  let messages = [{ role: "bot", content: "Hello, how can I assist you today?" }];
+  let textField: any = null;
+  const allowedTag: string[] = Object.values(AllowedTag);
+
+  const ask = () => {
+    if (prompt === "") {
+      return;
+    }
+    textField.disabled = true; // Disable the text field while the bot is responding
+    messages.push({ role: "user", content: prompt });
+    vscode.postMessage({
+      command: "ask",
+      text: prompt,
+    });
+  };
+
 </script>
 
 <h1>AutoTestGen</h1>
@@ -118,42 +152,85 @@
 <vscode-button class="full" on:click={parseRequest} bind:this={btnRef}>Parse Projects</vscode-button>
 <vscode-button class="full" on:click={checkHealth}>Doctor</vscode-button>
 
-<div class="result-container">
-  <span>
-    Project Stats:
-  </span>
-  <vscode-divider></vscode-divider>
-  <p>No. of Methods: <vscode-tag>{numberRounder(
-    numberOfMethods
-  )}</vscode-tag></p>
-  <p>No. of Tests: <vscode-tag>{numberRounder(
-    numberOfTests
-  )}</vscode-tag></p>
+<div class="chat-container">
+  {#each messages as message}
+    <div class="message-container">
+      <div class="message-role">{message.role}</div>
+      {#each message.content.split(' ') as word}
+      {#if word.startsWith('/') && allowedTag.includes(word)}
+        <span class="tag">{word}</span>
+      {:else}
+        {word} 
+      {/if}
+      {' '}
+    {/each}
+    </div>
+    <vscode-divider></vscode-divider>
+  {/each}
 </div>
+<div class="search-container">
+  <div class="full-chat">
+    <vscode-text-field
+      bind:this={textField}
+      value={prompt}
+      class="form-control search-box"
+      rows="3"
+      style="resize: vertical;"
+      minlength="15"
+      placeholder="Type your message here..."
+    >
+      <vscode-button slot="end" appearance="icon" class="btn" on:click={ask}>
+        <span class="codicon codicon-search"></span>
+      </vscode-button>
+    </vscode-text-field>
+  </div>
+</div>
+
 <style>
 
   .full {
     width: 100%;
     margin-bottom: 0.5em;
   }
-  .result-container {
-    font-size: 18px;
-    line-height: 1.6;
-    padding-top: 10px;
+
+
+  .search-container {
+    position: fixed;
+    bottom: 0;
+    width: 90%;
+    padding-bottom: 5%;
   }
-  .result-container span{
-    margin: 1.33em 0 0 0;
+  .chat-container {
+    /* height: 90vh; Adjust the height as needed */
+    overflow-y: auto; /* Add a scrollbar if the content overflows */
+  }
+
+  .message-container {
+    margin: 10px 0;
+  }
+
+  .message-role {
     font-weight: bold;
-    display: block;
+    margin-bottom: 5px;
   }
-  .result-container p {
-    margin: 0 0 10px;
+  .full-chat {
+    display: flex;
+    align-items: end;
   }
-  vscode-tag {
-    background-color: var(--vscode-editor-background);
-    color: var(--vscode-foreground);
-    padding: 5px 10px;
-    border-radius: 3px;
-    font-size: 16px;
+
+  .search-box {
+    flex-grow: 8; /* Take up 80% of the space */
+    margin-right: 10px; /* Add some space between the text field and button */
+  }
+
+  .btn {
+    flex-grow: 2; /* Take up 20% of the space */
+  }
+
+  .tag{
+    background-color: #3498db; /* Background color */
+    color: white; /* Text color */
+    padding: 2px 6px; /* Padding for spacing */
+    border-radius: 4px; /* Rounded corners */
   }
 </style>

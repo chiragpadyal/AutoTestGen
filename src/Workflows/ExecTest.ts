@@ -81,4 +81,22 @@ export default class ExecTest {
         );
         await execShell(cmd);
     }
+
+    async runTestAll() {
+        let cmd = this.buildCmd(
+            'test',
+            {},
+            path.join(this._projectPath, 'pom.xml')
+        );
+        await execShell(cmd);
+    }
+
+    // async runJacoco() {
+    //     let cmd = this.buildCmd(
+    //         'jacoco:report',
+    //         {},
+    //         path.join(this._projectPath, 'pom.xml')
+    //     );
+    //     await execShell(cmd);
+    // }
 }

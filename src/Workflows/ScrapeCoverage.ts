@@ -1,18 +1,16 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { JSDOM } from 'jsdom';
-import ClassParser from './ClassParser';
 import { ParsedClassType, ParsedMethodType, LineData } from '../types/ParsedClassType';
 import { getUrlEnding } from '../utilities/getUrlEnding';
-import { workspace } from 'vscode';
+import { Uri, workspace } from 'vscode';
+import { readFile, writeFile } from '../utilities/fsUtils';
 
-class ScrapeCoverage {
-    constructor(private readonly _extensionPath: string) {}
+export class ScrapeCoverage {
+    constructor(private readonly vsStorageURL: Uri) {}
 
     
-    scrapeJacocoCode(jacocoHtmlResultUrl: string): ParsedMethodType[] {
-        // Read the HTML file
-        const htmlContent = fs.readFileSync(jacocoHtmlResultUrl, 'utf-8');
+    async scrapeJacocoCode(jacocoHtmlResultUrl: string): Promise<ParsedMethodType[]> {
+
+        const htmlContent = await readFile(jacocoHtmlResultUrl)
         
         // Parse HTML content using jsdom
         const dom = new JSDOM(htmlContent);
@@ -25,12 +23,15 @@ class ScrapeCoverage {
         }
     
         // ---------- Find the line number of focal method {} start and end. ---------- //
-        const className = getUrlEnding(jacocoHtmlResultUrl).replace('.html', '') + '.java';
+        const className = getUrlEnding(jacocoHtmlResultUrl).replace('.html', '') + '.java' + '.json';
         if(!workspace.workspaceFolders){
             throw new Error('No workspace folder found');
         }
-        const filePath: string = path.join(this._extensionPath, 'temp', workspace.workspaceFolders[0].name , 'main' , className);
-        const parsedCLS: ParsedClassType = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+
+        const filePath: Uri = Uri.joinPath(this.vsStorageURL, 'temp', workspace.workspaceFolders[0].name , 'main' , className);
+
+        const parsedCLSRes = await readFile(filePath)
+        const parsedCLS: ParsedClassType = JSON.parse(Buffer.from(parsedCLSRes).toString('utf8'));
         if (!parsedCLS.methods) {
             throw new Error('No methods found');
         }
@@ -53,7 +54,8 @@ class ScrapeCoverage {
         }
 
         parsedCLS.methods = mtd;
-        fs.writeFileSync(filePath, JSON.stringify(parsedCLS));        
+
+        await writeFile(filePath, JSON.stringify(parsedCLS))    
         return mtd;
     }
 

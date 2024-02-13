@@ -1,5 +1,11 @@
 import { execShell } from "./execShell";
-export function healthCheck(window: any): void{
+
+type HealthCheck = {
+    "javaInstalled": boolean;
+      "mavenInstalled": boolean; 
+  }
+
+export function healthCheck(window: any): HealthCheck {
     let javaInstalled = false;
     let mavenInstalled = false;
     // check if java is installed
@@ -24,4 +30,5 @@ export function healthCheck(window: any): void{
     }).catch((e) => {
         window.showErrorMessage(`[Health Check] Java is not installed`);
     });
+    return { "javaInstalled": javaInstalled, "mavenInstalled": mavenInstalled };
 }

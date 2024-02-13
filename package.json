@@ -32,6 +32,9 @@
       {
         "command": "codelens-sample.codelensAction",
         "title": "Print code lens action"
+      },
+      {
+        "command": "autoTestGen.sendToWebView"
       }
     ],
     "views": {
@@ -44,13 +47,6 @@
           "contextualTitle": "MyExtension"
         },
         {
-          "type": "webview",
-          "id": "myextension-sidebar2",
-          "name": "Chat Bot",
-          "icon": "media/icon.svg",
-          "contextualTitle": "MyExtension2"
-        },
-        {
           "id": "myextension-treeview",
           "name": "Result"
         }
@@ -61,8 +57,6 @@
     "install:all": "npm install && cd webview-ui && npm install",
     "start:webview": "cd webview-ui && npm run dev",
     "build:webview": "cd webview-ui && npm run build",
-    "start:chat": "cd webview-ui-chat && npm run dev",
-    "build:chat": "cd webview-ui-chat && npm run build",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",

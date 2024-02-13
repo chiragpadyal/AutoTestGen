@@ -2,22 +2,17 @@ import { Disposable, Webview, WebviewView, window, Uri, ViewColumn, WebviewViewP
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import {ParseTask} from "../workflows/ParseTask"
-import * as Parser from 'web-tree-sitter'
-import * as path from 'path'
 import { LogLevel, Logger } from "../utilities/logger";
 import ExecTest from "../workflows/ExecTest";
 import { healthCheck } from "../utilities/healthCheck";
+import askGpt from "../utilities/askGpt";
+import { MessageType } from "../types/MessageType";
+import { AllowedTag } from "../types/allowedTags";
 /**
- * This class manages the state and behavior of HelloWorld webview panels.
- *
- * It contains all the data and methods for:
- *
- * - Creating and rendering HelloWorld webview panels
- * - Properly cleaning up and disposing of webview resources when the panel is closed
- * - Setting the HTML (and by proxy CSS/JavaScript) content of the webview panel
- * - Setting message listeners so data can be passed between the webview and extension
+ * This class manages the state and behavior of  webview panel.
  */
 export class SideBarPanel implements WebviewViewProvider {
+
   _panel?: WebviewView;
   _disposables: Disposable[] = [];
   logger = Logger.getInstance();
@@ -35,6 +30,7 @@ export class SideBarPanel implements WebviewViewProvider {
   }
 
   public resolveWebviewView(webviewView: WebviewView) {
+    this.logger.log(LogLevel.INFO, "parse", `Resolving webview ...`);
     // this._panel = webviewView;
     this._panel = webviewView;
     this._panel.webview.options = {
@@ -47,12 +43,28 @@ export class SideBarPanel implements WebviewViewProvider {
     // Set up message passing from the webview to the extension
     this._setWebviewMessageListener(this._panel.webview);
 
+    // Load result
+    // this.loadResult(this._panel.webview);
+
+
     // Update workspace folders
     this._updateWorkspaceFolders(this._panel.webview);
+  }
 
+  
+
+  /**
+   * 
+   * @param webview webview to send message
+   * @param message message to send in {@link MessageType}
+   */
+  private async chatReply(webview: Webview, message: MessageType){
+    await webview.postMessage(message)
   }
 
 
+
+  
   private _updateWorkspaceFolders(webview: Webview) {
 
     let _arr = () => {
@@ -63,12 +75,27 @@ export class SideBarPanel implements WebviewViewProvider {
           "uri": folder.uri.fsPath
         }
       }) || [];
+      this.logger.log(LogLevel.INFO, "parse", `Updating workspace folders ... ${projects[0].name}`);
       webview.postMessage({ command: "parse", text: projects });
     }
     _arr();
     workspace.onDidChangeWorkspaceFolders(() => {
       _arr();
     });
+  }
+
+
+  public sendCodeLensData(data: any) {
+    if (this._panel) {
+      let msg: MessageType = {
+        command: "reply",
+        text: `${AllowedTag.Method} generate test case for method`,
+        from: "user"
+      }
+      this.chatReply(this._panel.webview, msg);
+
+      this.logger.log(LogLevel.INFO, "parse", `Received data from code lens: ${data}`);
+    }
   }
 
 
@@ -113,7 +140,7 @@ export class SideBarPanel implements WebviewViewProvider {
 
 
 
-  public async processJavaFiles(window: any, workspace: any) {
+  public async processJavaFiles() {
     let tests = [];
     let mains = [];
     const uris = await workspace.findFiles("**/*.java");
@@ -132,6 +159,14 @@ export class SideBarPanel implements WebviewViewProvider {
     return [tests, mains];
   }
 
+
+  private async loadResult(webview: Webview){
+    this.logger.log(LogLevel.INFO, "parse", `refred webview`);
+    const result = await this.processJavaFiles();
+    if (result.length > 0)
+    webview.postMessage({ command: "reply", text: `Hii, This project has ${result[0].length} focal classes and ${result[1].length} test classes ` });
+  };
+
   /**
    * Sets up an event listener to listen for messages passed from the webview context and
    * executes code based on the message that is recieved.
@@ -148,14 +183,17 @@ export class SideBarPanel implements WebviewViewProvider {
           window.showInformationMessage(text);
           return;
         case "parse-project":
+          this.chatReply( webview, { command: "reply", text: `${AllowedTag.Parse} ${text.name}`, from: "user"})
           window.showInformationMessage(`Parsing ${text.name} ...` || "Nothing to parse");
           let result = null;
           try {
-            result = await this.processJavaFiles(window, workspace);
+            result = await this.processJavaFiles();
             this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ...`);
             this.parseTask.parseProject(text.uri, result[0], result[1]);
+            this.chatReply( webview, { command: "reply", text: `Parsing ${text.name} ... Done`, from: "bot"})
           } catch (error) {
             this.logger.log(LogLevel.ERROR, "parse", `Parsing ${text.name} ... Failed: ${error}`);
+            this.chatReply( webview, { command: "reply", text: `Parsing ${text.name} Failed`, from: "bot"})
           } finally {
             this.logger.log(LogLevel.INFO, "parse", `Parsing ${text.name} ... Done`);
             if (result)
@@ -166,29 +204,50 @@ export class SideBarPanel implements WebviewViewProvider {
           }
           return;
         case "compile":
+          this.chatReply( webview, { command: "reply", text: `${AllowedTag.Compile} ${text.uri}`, from: "user"})
           this.logger.log(LogLevel.INFO, "compile", `Compiling ${text.uri} ...`);
           try {
             const execTest = new ExecTest(text.uri);
             await execTest.runCompile();
             this.logger.log(LogLevel.INFO, "compile", `Compile ... Done`);
+            this.chatReply( webview, { command: "reply", text: `Compiled ${text.uri}`, from: "bot"})
             window.showInformationMessage(`Compiled ${text.uri}`);
-            await execTest.runTest("test");
+            await execTest.runTestAll();
             this.logger.log(LogLevel.INFO, "compile", `Test ... Done`);
-            window.showInformationMessage(`Tested ${text.uri}`);
+            this.chatReply( webview, { command: "reply", text: `Tested ${text.uri}`, from: "bot"})
+            window.showInformationMessage(`Tested ${text.uri}`);       
           } catch (error) {
             this.logger.log(LogLevel.ERROR, "compile", `Compile/Test ${text.uri} ... Failed: ${error}`);
+            this.chatReply( webview, { command: "reply", text: `Compile/Test ${text.uri} Failed`, from: "bot"})
           }
           return;
         case "health":
+          this.chatReply( webview, { command: "reply", text: `${AllowedTag.HealthCheck}`, from: "user"})
           this.logger.log(LogLevel.INFO, "health", `Health Check ...`);
-          healthCheck(window);
+          const res = healthCheck(window);
+          this.chatReply( webview, { command: "reply", text: `Java is installed ${res.javaInstalled} \nMaven is installed ${res.mavenInstalled}`, from: "bot"})
+          return;
+        case "ask":
+          this.logger.log(LogLevel.INFO,  'ASK-BOT', `Received message from webview: ${text}`);
+          let response = askGpt(text).then((response) => {
+            this.logger.log(LogLevel.INFO,  'ASK-BOT', `Response from GPT-3: ${response}`);
+            webview.postMessage({ command: "reply", text: response });
+          }).catch((error) => {
+            this.logger.log(LogLevel.ERROR,  'ASK-BOT', `Error from GPT-3: ${error}`);
+            webview.postMessage({ command: "reply", text: "Server Down! try later..." });
+          });
           return;
         default:
           return;
       }
     }, undefined, this._disposables);
   }
-  
 
 
+  /**
+   * Disposes of the resources used by the webview panel.
+   */
+  public dispose() {
+    this._disposables.forEach((d) => d.dispose())
+  }
 }

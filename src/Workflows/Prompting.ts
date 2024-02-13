@@ -1,5 +1,5 @@
 import * as mustache from 'mustache';
-import * as fs from 'fs';
+import * as fs from 'fs'; //TODO: change to vscode.workspace.fs
 import * as path from 'path';
 import askGpt from '../utilities/askGpt';
 
@@ -29,24 +29,41 @@ export interface PromptAttrTemplate {
 
 export class Prompting {
     constructor(private readonly _extensionPath: string) {}
-    public templating(prompt: PromptAttrTemplate): string {
+    public async templating(prompt: PromptAttrTemplate): Promise<string> {
         try {
             const templatePath = path.join(this._extensionPath, PROMPTDIR, prompt.file);
             const template = fs.readFileSync(templatePath, 'utf8');
             mustache.render(template, prompt.attrs);
-            return this.runPrompt(template);
+            let response = await askGpt(template);
+            return this.parseCode(response);
         } catch (e: any) {
             throw new Error(e);
         }
     }
 
-    private runPrompt(prompt: string): string {
-        askGpt(prompt).then((response) => {
-            return response;
-        }).catch((error) => {
-            return "Server Down! try later...";
-        });
-        return 'Server Down! try later...';
+    private async runPrompt(prompt: string): Promise<string> {
+        let response = await askGpt(prompt);
+        return response;
+    }
+
+    private parseCode(gptResonse: string): string {
+        // TODO: write better code block parser
+        const hasCodeBlock = gptResonse.includes("```");
+        if (hasCodeBlock) {
+            const codeBlock = gptResonse.split("```")[1];
+            return codeBlock;
+        }
+        return '';
     }
 
 }
+
+
+/**
+ * 
+ * How to solve the current dileme 
+ * 
+ * Goal:
+ * - result
+ *  - test case save to file
+ */

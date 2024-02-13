@@ -40,14 +40,24 @@ export function activate(context: ExtensionContext) {
 	const parseTask: ParseTask = new ParseTask("temp", context.storageUri, context.extensionPath);
 	const sidePanel = new SideBarPanel(context.extensionUri, parseTask);
 	context.subscriptions.push(
-		window.registerWebviewViewProvider("myextension-sidebar", sidePanel)
+		window.registerWebviewViewProvider("myextension-sidebar", sidePanel,
+		{
+			webviewOptions: {
+				retainContextWhenHidden: true,
+			},
+		}
+		)
 	);
 
 	/* ----------------------------- chat side panel ----------------------------- */
-	const chatSidePanel = new ChatSideBarPanel(context.extensionUri);
-	context.subscriptions.push(
-		window.registerWebviewViewProvider("myextension-sidebar2", chatSidePanel)
-	);
+	// const chatSidePanel = new ChatSideBarPanel(context.extensionUri);
+	// context.subscriptions.push(
+	// 	window.registerWebviewViewProvider("myextension-sidebar2", chatSidePanel, {
+	// 		webviewOptions: {
+	// 			retainContextWhenHidden: true,
+	// 		},
+	// 	})
+	// );
 
 	/* ----------------------------- tree view provider ----------------------------- */
 	const treeData = new TreeDataProvider();
@@ -103,6 +113,10 @@ export function activate(context: ExtensionContext) {
 		// TODO: replace with proper name command
 		commands.registerCommand("codelens-sample.codelensAction", (...args) => {
 		window.showInformationMessage(`Generate Start line=${args[0]} End Line = ${args[1]} `);
+	}));
+
+	context.subscriptions.push(commands.registerCommand('autoTestGen.sendToWebView', (data) => {
+		sidePanel.sendCodeLensData(data);
 	}));
 	
 

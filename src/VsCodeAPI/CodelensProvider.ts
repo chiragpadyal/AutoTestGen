@@ -83,17 +83,19 @@ export class CodelensProvider implements CodeLensProvider {
 		return [];
 	}
 
-	// @ts-ignore
 	public resolveCodeLens(codeLens: CodeLens, token: CancellationToken) {
-		if (workspace.getConfiguration("codelens-sample").get("enableCodeLens", true)) {
+		const editor = window.activeTextEditor;
+		if (editor) {
+			const document = editor.document;
+			const code = document.getText(codeLens.range);
+	
 			codeLens.command = {
 				title: "Generate Test Case",
 				tooltip: "This will generate a test case for the method",
-				command: "codelens-sample.codelensAction",
-				arguments: [codeLens.range.start.line , codeLens.range.end.line]
+				command: "autoTestGen.sendToWebView",
+				arguments: [code]
 			};
-			return codeLens;
 		}
-		return null;
+		return codeLens;
 	}
 }
