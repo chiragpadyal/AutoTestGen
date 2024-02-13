@@ -12,7 +12,6 @@ import { CodelensProvider } from './vscodeAPI/CodelensProvider';
 import { SideBarPanel } from "./panels/SideBarPanel";
 import { ParseTask } from './workflows/ParseTask';
 import { TreeDataProvider } from './panels/TreePanel';
-import { ChatSideBarPanel } from './panels/ChatSideBarPanel';
 import 'dotenv/config'
 import { SettingDocument } from './panels/SettingDocument';
 
