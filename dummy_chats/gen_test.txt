@@ -1,0 +1,14 @@
+User: Generate test case for method @FMethod
+Bot: 
+    1. Looking if @FMethod has test case
+    \\  
+
+    Result: @FMethod has test case
+    2. Looking for the test case
+    Result: Test case not found (annotate the test case with its focal method name)
+    3. Select the test case for @FMethod
+    Result: @Test case selected
+    4. Generate the test case for @FMethod
+    5. Temp save and calculate the coverage
+    6. Iterate the process until coverage is above threshold.
+    7. save the test case

@@ -3,6 +3,21 @@
   "displayName": "hello-world-svelte",
   "description": "A hello world sample extension to demonstrate using Svelte with the Webview UI Toolkit for VS Code.",
   "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Launch",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "remotePath": "",
+      "port": 2345,
+      "host": "127.0.0.1",
+      "program": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "args": [],
+      "showLog": true
+    }
+  ],
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -45,10 +60,6 @@
           "name": "Auto Gen",
           "icon": "media/icon.svg",
           "contextualTitle": "MyExtension"
-        },
-        {
-          "id": "myextension-treeview",
-          "name": "Result"
         }
       ]
     }
@@ -82,6 +93,7 @@
     "vscode-test": "^1.5.0"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "@testdeck/mocha": "^0.3.3",
     "@types/mustache": "^4.2.5",
     "@vscode/codicons": "^0.0.35",
@@ -89,10 +101,12 @@
     "clarifai-nodejs-grpc": "^10.1.1",
     "dotenv": "^16.4.1",
     "fast-xml-parser": "^4.3.4",
+    "i": "^0.3.7",
     "jsdom": "^24.0.0",
     "maven": "^5.0.0",
     "mocha": "^10.2.0",
     "mustache": "^4.2.0",
+    "npm": "^10.4.0",
     "nyc": "^15.1.0",
     "tree-sitter": "^0.20.6",
     "tree-sitter-java": "^0.20.2",

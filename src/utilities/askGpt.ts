@@ -1,7 +1,13 @@
-const { ClarifaiStub, grpc } = require("clarifai-nodejs-grpc");
+import { SecretStorage } from "vscode";
 
-export default function askGpt(prompt: string): Promise<string> {
-    const PAT = process.env.CLARIFAI_PAT;
+const { ClarifaiStub, grpc } = require("clarifai-nodejs-grpc");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+
+export async function  askGpt(prompt: string, secrets: SecretStorage | null = null ): Promise<string> {
+    const PAT = await secrets?.get("autoTestGen.apiKey");
+    // const PAT = "c18a2b6b798045fb9d3c6b0dbf9a0f5b";
+    console.log("PAT: ", PAT);
     const USER_ID = 'openai';
     const APP_ID = 'chat-completion';
     const MODEL_ID = 'GPT-3_5-turbo';
@@ -47,4 +53,20 @@ export default function askGpt(prompt: string): Promise<string> {
               }
         );
     });
+}
+
+export async function askGptGemini(prompt: string, secrets: SecretStorage | null = null): Promise<string> {
+  const PAT = await secrets?.get("autoTestGen.apiKey");
+  const genAI = new GoogleGenerativeAI(PAT);
+  console.log("PAT: ", PAT);
+
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+  } catch (error) {
+      throw error;
+  }
 }

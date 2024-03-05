@@ -11,7 +11,8 @@ import {
 import { CodelensProvider } from './vscodeAPI/CodelensProvider';
 import { SideBarPanel } from "./panels/SideBarPanel";
 import { ParseTask } from './workflows/ParseTask';
-import { TreeDataProvider } from './panels/TreePanel';
+//TODO: delete files
+// import { TreeDataProvider } from './panels/TreePanel';
 import 'dotenv/config'
 import { SettingDocument } from './panels/SettingDocument';
 
@@ -37,7 +38,7 @@ export function activate(context: ExtensionContext) {
 	/* ----------------------------- webui provider ----------------------------- */
 	// TODO: rm context.extionPath only used to get assests/tree-sitter-java.wasm
 	const parseTask: ParseTask = new ParseTask("temp", context.storageUri, context.extensionPath);
-	const sidePanel = new SideBarPanel(context.extensionUri, parseTask);
+	const sidePanel = new SideBarPanel(context.extensionUri, parseTask, context.secrets);
 	context.subscriptions.push(
 		window.registerWebviewViewProvider("myextension-sidebar", sidePanel,
 		{
@@ -59,12 +60,12 @@ export function activate(context: ExtensionContext) {
 	// );
 
 	/* ----------------------------- tree view provider ----------------------------- */
-	const treeData = new TreeDataProvider();
-	context.subscriptions.push(
-		window.registerTreeDataProvider(
-			'myextension-treeview', treeData
-		)
-	);
+	// const treeData = new TreeDataProvider();
+	// context.subscriptions.push(
+	// 	window.registerTreeDataProvider(
+	// 		'myextension-treeview', treeData
+	// 	)
+	// );
 
 	/* ----------------------------- code lens provider ----------------------------- */
 	const codelensProvider = new CodelensProvider(context.storageUri);
@@ -115,7 +116,13 @@ export function activate(context: ExtensionContext) {
 	}));
 
 	context.subscriptions.push(commands.registerCommand('autoTestGen.sendToWebView', (data) => {
-		sidePanel.sendCodeLensData(data);
+		sidePanel.recieveCodeLensData(
+			data.code, 
+			data.range, 
+			data.packageName, 
+			data.documentUri,
+			data.methodName
+		);
 	}));
 	
 

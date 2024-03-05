@@ -1,7 +1,7 @@
 import * as mustache from 'mustache';
 import * as fs from 'fs'; //TODO: change to vscode.workspace.fs
 import * as path from 'path';
-import askGpt from '../utilities/askGpt';
+// import askGpt from '../utilities/askGpt';
 
 const PROMPTDIR = path.join('src', 'prompts');
 
@@ -33,17 +33,12 @@ export class Prompting {
         try {
             const templatePath = path.join(this._extensionPath, PROMPTDIR, prompt.file);
             const template = fs.readFileSync(templatePath, 'utf8');
-            mustache.render(template, prompt.attrs);
-            let response = await askGpt(template);
-            return this.parseCode(response);
+            return mustache.render(template, prompt.attrs);
+            // let response = await askGpt(template);
+            // return this.parseCode(response);
         } catch (e: any) {
             throw new Error(e);
         }
-    }
-
-    private async runPrompt(prompt: string): Promise<string> {
-        let response = await askGpt(prompt);
-        return response;
     }
 
     private parseCode(gptResonse: string): string {
@@ -57,13 +52,3 @@ export class Prompting {
     }
 
 }
-
-
-/**
- * 
- * How to solve the current dileme 
- * 
- * Goal:
- * - result
- *  - test case save to file
- */

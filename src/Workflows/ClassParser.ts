@@ -52,7 +52,7 @@ export default class ClassParser {
                                 if (method.type === 'method_declaration') {
                                     methods.push({
                                         method_name: this.getFunctionName(method, content),
-                                        star_line: method.startPosition.row + 1,
+                                        star_line: method.startPosition.row,
                                         end_line: method.endPosition.row + 1,
                                         source_code: method.text.slice(1, -1),
                                         is_constructor: false,

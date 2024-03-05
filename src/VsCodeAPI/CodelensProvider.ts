@@ -48,11 +48,6 @@ export class CodelensProvider implements CodeLensProvider {
 		} catch (err) {
 			this.logger.log(LogLevel.ERROR, 'CodelensProvider', `Error opening file: ${err}`);
 		}
-		// if (!fs.existsSync(filePath)) {
-		// 	return parsedClass;
-		// }
-		// const fileContent = fs.readFileSync(filePath, 'utf8');
-		// const parsedContent = JSON.parse(fileContent);
 		return parsedContent;
 	}
 
@@ -74,7 +69,19 @@ export class CodelensProvider implements CodeLensProvider {
 				const posY = new Position(element.end_line, 0);
 				const range: Range = new Range(posX, posY);
 				if (range){
-					this.codeLenses.push(new CodeLens(range));
+					this.codeLenses.push(new CodeLens(range, {
+						title: `Generate Test Case | ${element.number_of_NC}/${element.number_of_PC}`,
+						tooltip: "This will generate a test case for the method",
+						command: "autoTestGen.sendToWebView",
+						arguments: [{
+							"code": document.getText(range),
+							"methodName": element.method_name,
+							"range": [element.star_line, element.end_line],
+							"packageName": document.getText().match(/package\s+([a-zA-Z0-9_.]+)\s*;/)?.[1] || '',
+							"documentUri": document.uri
+						}]
+					}
+						));
 				}	
 			});
 
@@ -83,19 +90,26 @@ export class CodelensProvider implements CodeLensProvider {
 		return [];
 	}
 
-	public resolveCodeLens(codeLens: CodeLens, token: CancellationToken) {
-		const editor = window.activeTextEditor;
-		if (editor) {
-			const document = editor.document;
-			const code = document.getText(codeLens.range);
-	
-			codeLens.command = {
-				title: "Generate Test Case",
-				tooltip: "This will generate a test case for the method",
-				command: "autoTestGen.sendToWebView",
-				arguments: [code]
-			};
-		}
-		return codeLens;
-	}
+	// public resolveCodeLens(codeLens: CodeLens, token: CancellationToken) {
+	// 	const editor = window.activeTextEditor;
+	// 	if (editor) {
+	// 		const document = editor.document;
+	// 		const code = document.getText(codeLens.range);
+	// 		const packageName: string = document.getText().match(/package\s+([a-zA-Z0-9_.]+)\s*;/)?.[1] || '';
+	// 		codeLens.command = {
+	// 			title: "Generate Test Case",
+	// 			tooltip: "This will generate a test case for the method",
+	// 			command: "autoTestGen.sendToWebView",
+	// 			arguments: [{
+	// 				// code, [codeLens.range.start.line, codeLens.range.end.line], packageName , document.uri
+	// 				"code": code,
+	// 				"methodName": "",
+	// 				"range": [codeLens.range.start.line, codeLens.range.end.line],
+	// 				"packageName": packageName,
+	// 				"documentUri": document.uri
+	// 			}]
+	// 		};
+	// 	}
+	// 	return codeLens;
+	// }
 }

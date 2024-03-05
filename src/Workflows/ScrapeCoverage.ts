@@ -59,7 +59,30 @@ export class ScrapeCoverage {
         return mtd;
     }
 
-    
+    /**
+     * Check if a method has a test method
+     * @param methodName method name
+     * @param parsedFilePathOrContent parsed file path or content
+     * @returns boolean
+     */
+    async checkIfHasTestMethod(methodName: string, parsedFilePathOrContent: string | ParsedMethodType[]): Promise<boolean> {
+        let parsedClass: ParsedClassType;
+        if (typeof parsedFilePathOrContent === 'string') {
+            const parsedContent = await readFile(parsedFilePathOrContent);
+            parsedClass = JSON.parse(parsedContent);
+        }else {
+            parsedClass = {methods: parsedFilePathOrContent};
+        }
+        if (!parsedClass.methods) {
+            return false;
+        }
+        for (const method of parsedClass.methods) {
+            if (method.method_name === methodName) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 
     // scrapeJacocoTable(htmlFilePathTable: string): number[][] {
