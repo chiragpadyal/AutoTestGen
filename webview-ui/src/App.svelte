@@ -299,7 +299,6 @@
     font-size: 14px; */
     max-height: 30vh;
     overflow: scroll;
-    background-color: var(--vscode-editor-background) !important;
   }
 
   :global(.badge-code){

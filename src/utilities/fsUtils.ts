@@ -5,7 +5,7 @@ import { Uri, workspace } from "vscode";
  * @param {string | Uri} path: path as string or Uri 
  * @returns 
  */
-export async function readFile(path: string | Uri){
+export async function readFile(path: string | Uri) : Promise<string> {
     let pathUri: Uri;
     if (typeof path == 'string') pathUri = Uri.file(path);
     else pathUri = path;
@@ -19,11 +19,15 @@ export async function readFile(path: string | Uri){
  * @param {string} content content to be written to file
  * @returns string
  */
-export async function writeFile(path: string | Uri, content: string){
+export async function writeFile(path: string | Uri, content: string): Promise<void> {
     let pathUri: Uri;
     if (typeof path == 'string') pathUri = Uri.file(path);
     else pathUri = path;
     await workspace.fs.writeFile(pathUri,
         Buffer.from(content)
     )
+}
+
+export function joinPath(url: Uri, ...paths: string[]){
+    return Uri.joinPath(url, ...paths);
 }

@@ -70,7 +70,7 @@ export class CodelensProvider implements CodeLensProvider {
 				const range: Range = new Range(posX, posY);
 				if (range){
 					this.codeLenses.push(new CodeLens(range, {
-						title: `Generate Test Case | ${element.number_of_NC}/${element.number_of_PC}`,
+						title: `Generate Test Case`,
 						tooltip: "This will generate a test case for the method",
 						command: "autoTestGen.sendToWebView",
 						arguments: [{

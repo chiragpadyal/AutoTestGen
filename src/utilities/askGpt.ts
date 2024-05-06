@@ -1,72 +1,62 @@
-import { SecretStorage } from "vscode";
-
-const { ClarifaiStub, grpc } = require("clarifai-nodejs-grpc");
+import { SecretStorage, Uri } from "vscode";
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+import ollama, {ChatResponse, Message} from 'ollama'
+import * as Mustache from 'mustache'
+import * as fs from 'fs'
+import { readFile } from "./fsUtils";
+import generateRandomString from "./randomString";
+
+import * as path from 'path';
+import { LogLevel, Logger } from "./logger";
+
+export class AskGPT {
+  chatHistory: Message[] = [];
+  constructor(private secrets: SecretStorage | null, private model: string, private extensionUri: Uri, private logger: Logger) {}
 
 
-export async function  askGpt(prompt: string, secrets: SecretStorage | null = null ): Promise<string> {
-    const PAT = await secrets?.get("autoTestGen.apiKey");
-    // const PAT = "c18a2b6b798045fb9d3c6b0dbf9a0f5b";
-    console.log("PAT: ", PAT);
-    const USER_ID = 'openai';
-    const APP_ID = 'chat-completion';
-    const MODEL_ID = 'GPT-3_5-turbo';
-    const MODEL_VERSION_ID = '4471f26b3da942dab367fe85bc0f7d21';
-    const stub = ClarifaiStub.grpc();
-
-    const metadata = new grpc.Metadata();
-    metadata.set("authorization", "Key " + PAT);
-
-    return new Promise((resolve, reject) => {
-        stub.PostModelOutputs(
-            {
-                user_app_id: {
-                    "user_id": USER_ID,
-                    "app_id": APP_ID
-                },
-                model_id: MODEL_ID,
-                version_id: MODEL_VERSION_ID, // This is optional. Defaults to the latest model version.
-                inputs: [
-                    {
-                        "data": {
-                            "text": {
-                                "raw": prompt
-                            }
-                        }
-                    }
-                ]
-            },
-            metadata,
-            (err: any, response: any) => {
-                if (err) {
-                  reject(new Error(`Clarifai API error: ${err.message}`));
-                } else if (response.status.code !== 10000) {
-                  reject(new Error(`Clarifai API failed, status: ${response.status.description}`));
-                } else {
-                  const output = response.outputs[0];
-                  if (!output || !output.data || !output.data.text || !output.data.text.raw) {
-                    reject(new Error('Invalid response from Clarifai API'));
-                  } else {
-                    resolve(output.data.text.raw);
-                  }
-                }
-              }
-        );
+  async askGptGemini(prompt: string): Promise<string> {
+    const PAT = await this.secrets?.get("autoTestGen.apiKey");
+    const genAI = new GoogleGenerativeAI(PAT);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const chat = model.startChat({
+      // Gemini has different formats for chat history
+      history: this.chatHistory.map(obj => {
+        return {'role': obj.role, 'parts': [{'text': obj.content}]} || {};
+      }),
+      generationConfig: {
+        maxOutputTokens: 100,
+      },
     });
-}
+  
+    // try {
+    //     const result = await chat.sendMessage(prompt)
+    //     const response = await result.response;
+    //     return response.text();
+    // } catch (error) {
+    //     this.logger.log(LogLevel.ERROR, 'GEMINI' , `Error in askGptGemini: ${error}`)
+    //     throw error;
+    // }
 
-export async function askGptGemini(prompt: string, secrets: SecretStorage | null = null): Promise<string> {
-  const PAT = await secrets?.get("autoTestGen.apiKey");
-  const genAI = new GoogleGenerativeAI(PAT);
-  console.log("PAT: ", PAT);
-
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-  try {
+    try {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
   } catch (error) {
       throw error;
+  }
+  }
+
+  async askOllama(prompt: string): Promise<string> {
+    const message = { role: 'user', content: prompt }
+    const response = await ollama.chat({ model: "phi3", messages: 
+      [...this.chatHistory, message]
+    })
+    return response.message.content;
+  }
+
+  async askOllamaStream(prompt: string): Promise<AsyncGenerator<ChatResponse>>{
+    const message = { role: 'user', content: prompt }
+    const response = await ollama.chat({ model: this.model, messages: [...this.chatHistory, message], stream: true})
+    return response
   }
 }

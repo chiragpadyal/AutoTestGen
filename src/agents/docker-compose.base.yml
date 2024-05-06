@@ -1,0 +1,21 @@
+version: '2'
+
+services:
+  test-env:
+    image: ubuntu:latest
+    container_name: ubuntu-test-enviroment
+    restart: always
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/home/dev/app
+    command: /bin/bash
+    port:
+      - '80:80'
+    networks:
+      - default
+
+networks:
+  default:
+    external:
+      name: bridge

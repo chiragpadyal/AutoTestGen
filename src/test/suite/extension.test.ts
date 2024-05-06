@@ -1,15 +1,10 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import askGpt from '../../utilities/askGpt';
+import {askGpt} from '../../utilities/askGpt';
 
 suite('Extension Test Suite', () => {
   suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
-  });
-
-  test('Sample test', () => {
-    assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-    assert.strictEqual(-1, [1, 2, 3].indexOf(0));
   });
 
   test('askGpt function test - Successful response', async () => {
@@ -21,11 +16,6 @@ suite('Extension Test Suite', () => {
     } catch (error) {
       assert.fail(error instanceof Error ? error.message : 'Unknown error occurred');
     }
-  });
-
-  test('Sample test', () => {
-    assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-    assert.strictEqual(-1, [1, 2, 3].indexOf(0));
   });
 
   test('askGpt function test - Clarifai API error', async () => {

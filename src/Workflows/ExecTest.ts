@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { execShell } from '../utilities/execShell';
+// import { execShell } from '../utilities/execShell';
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
 
 export default class ExecTest {
@@ -64,39 +64,43 @@ export default class ExecTest {
         return cmd;
     }
 
-    async runCompile() {
+    runCompile() {
         let cmd = this.buildCmd(
             'clean install',
             { 'skipTests': 'true' },
             path.join(this._projectPath, 'pom.xml')
         );
-        await execShell(cmd);
+        // await execShell(cmd);
+        return cmd;
     }
 
-    async runTest(_test: string) {
+    runTest(_test: string) {
         let cmd = this.buildCmd(
             'test',
             { 'test': _test },
             path.join(this._projectPath, 'pom.xml')
         );
-        await execShell(cmd);
+        // await execShell(cmd);
+        return cmd;
     }
 
-    async runTestAll() {
+    runTestAll() {
         let cmd = this.buildCmd(
             'test',
             {},
             path.join(this._projectPath, 'pom.xml')
         );
-        await execShell(cmd);
+        // await execShell(cmd);
+        return cmd;
     }
 
-    // async runJacoco() {
-    //     let cmd = this.buildCmd(
-    //         'jacoco:report',
-    //         {},
-    //         path.join(this._projectPath, 'pom.xml')
-    //     );
-    //     await execShell(cmd);
-    // }
+    runJacoco() {
+        let cmd = this.buildCmd(
+            'jacoco:report',
+            {},
+            path.join(this._projectPath, 'pom.xml')
+        );
+        // await execShell(cmd);
+        return cmd;
+    }
 }

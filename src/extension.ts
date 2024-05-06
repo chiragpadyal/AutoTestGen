@@ -23,7 +23,7 @@ export function activate(context: ExtensionContext) {
 	/* ------------------ Open jfreechart project in workspace ------------------ */
 	// TODO: Remove this only for development 
 	if(context.extensionMode === ExtensionMode.Development || context.extensionMode === ExtensionMode.Test) {
-		let uri = Uri.file("D:/Code/Code/ChatUniTest/jfreechart");
+		let uri = Uri.file("D:/Code/Code/jfreechart");
 		commands.executeCommand('vscode.openFolder', uri);
 	}
 
@@ -38,7 +38,7 @@ export function activate(context: ExtensionContext) {
 	/* ----------------------------- webui provider ----------------------------- */
 	// TODO: rm context.extionPath only used to get assests/tree-sitter-java.wasm
 	const parseTask: ParseTask = new ParseTask("temp", context.storageUri, context.extensionPath);
-	const sidePanel = new SideBarPanel(context.extensionUri, parseTask, context.secrets);
+	const sidePanel = new SideBarPanel(context.extensionUri, parseTask, context.secrets, context.storageUri);
 	context.subscriptions.push(
 		window.registerWebviewViewProvider("myextension-sidebar", sidePanel,
 		{
@@ -48,24 +48,6 @@ export function activate(context: ExtensionContext) {
 		}
 		)
 	);
-
-	/* ----------------------------- chat side panel ----------------------------- */
-	// const chatSidePanel = new ChatSideBarPanel(context.extensionUri);
-	// context.subscriptions.push(
-	// 	window.registerWebviewViewProvider("myextension-sidebar2", chatSidePanel, {
-	// 		webviewOptions: {
-	// 			retainContextWhenHidden: true,
-	// 		},
-	// 	})
-	// );
-
-	/* ----------------------------- tree view provider ----------------------------- */
-	// const treeData = new TreeDataProvider();
-	// context.subscriptions.push(
-	// 	window.registerTreeDataProvider(
-	// 		'myextension-treeview', treeData
-	// 	)
-	// );
 
 	/* ----------------------------- code lens provider ----------------------------- */
 	const codelensProvider = new CodelensProvider(context.storageUri);

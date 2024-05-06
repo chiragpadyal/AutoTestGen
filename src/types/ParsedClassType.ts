@@ -22,5 +22,4 @@ export interface ParsedClassType {
     "class_path"?: string,
     "package"?: string,
     "project_name"?: string
-
 }

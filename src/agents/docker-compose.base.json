@@ -1,0 +1,17 @@
+{
+  "version": "2",
+  "services":
+    {
+      "test-env":
+        {
+          "image": "maven:3.8.6-openjdk-11-slim",
+          "container_name": "maven-test-environment",
+          "tty": true,
+          "stdin_open": true,
+          "volumes": [".:/home/dev/app"],
+          "command": "/bin/bash",
+          "entrypoint": ["bash", "-c", "apt-get update -y && apt-get install python -y && cd /home/dev/app/target/site && python -m SimpleHTTPServer 80"],
+          "ports": ["7777:80"]
+        }
+    }
+}

@@ -3,13 +3,16 @@ import { ParsedClassType, ParsedMethodType, LineData } from '../types/ParsedClas
 import { getUrlEnding } from '../utilities/getUrlEnding';
 import { Uri, workspace } from 'vscode';
 import { readFile, writeFile } from '../utilities/fsUtils';
+import { LogLevel, Logger } from '../utilities/logger';
 
 export class ScrapeCoverage {
-    constructor(private readonly vsStorageURL: Uri) {}
+    constructor(private readonly vsStorageURL: Uri, private readonly logger: Logger) {}
 
     
-    async scrapeJacocoCode(jacocoHtmlResultUrl: string): Promise<ParsedMethodType[]> {
+    async scrapeJacocoCode(jacocoHtmlResultUrl: Uri): Promise<ParsedMethodType[]> {
 
+// [INFO] [ASK-BOT] Scraping coverage from: file:///d%3A/Code/Code/ChatUniTest/jfreechart/target/site/jacoco/org.jfree.chart.labels/AbstractXYItemLabelGenerator.java.html
+        
         const htmlContent = await readFile(jacocoHtmlResultUrl)
         
         // Parse HTML content using jsdom
@@ -19,24 +22,34 @@ export class ScrapeCoverage {
         // Find the <pre> tag containing the code
         const codeCover = document.querySelector('pre');
         if (!codeCover) {
+            this.logger.log(LogLevel.ERROR, '[ScrapeJacococCode]' ,'No <pre> tag found')
             throw new Error('No <pre> tag found');
         }
     
+
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'Parsing the coverage data')
         // ---------- Find the line number of focal method {} start and end. ---------- //
-        const className = getUrlEnding(jacocoHtmlResultUrl).replace('.html', '') + '.java' + '.json';
+        // const className = getUrlEnding(jacocoHtmlResultUrl).replace('.html', '') + '.java' + '.json';
+        const className = jacocoHtmlResultUrl.path.split('/').pop()?.replace('.html', '') + '.json';
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'className: ' + className);
         if(!workspace.workspaceFolders){
+            this.logger.log(LogLevel.ERROR, '[ScrapeJacococCode]' ,'No workspace folder found')
             throw new Error('No workspace folder found');
         }
 
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'Reading the parsed coverage data 1')
         const filePath: Uri = Uri.joinPath(this.vsStorageURL, 'temp', workspace.workspaceFolders[0].name , 'main' , className);
 
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'Reading the parsed coverage from: ' + filePath)
         const parsedCLSRes = await readFile(filePath)
         const parsedCLS: ParsedClassType = JSON.parse(Buffer.from(parsedCLSRes).toString('utf8'));
         if (!parsedCLS.methods) {
+            this.logger.log(LogLevel.ERROR, '[ScrapeJacococCode]' ,'No methods found')
             throw new Error('No methods found');
         }
         const mtd: ParsedMethodType[] = parsedCLS.methods;
     
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'Parsing the coverage data')
         for (let i = 0; i < mtd.length - 1; i++) {
             const focalMethodArr: LineData[] = [];
             for (let j = mtd[i].star_line; j <= mtd[i].end_line; j++) {
@@ -55,6 +68,7 @@ export class ScrapeCoverage {
 
         parsedCLS.methods = mtd;
 
+        this.logger.log(LogLevel.INFO, '[ScrapeJacococCode]' ,'Writing the parsed coverage data to file')
         await writeFile(filePath, JSON.stringify(parsedCLS))    
         return mtd;
     }
@@ -68,12 +82,14 @@ export class ScrapeCoverage {
     async checkIfHasTestMethod(methodName: string, parsedFilePathOrContent: string | ParsedMethodType[]): Promise<boolean> {
         let parsedClass: ParsedClassType;
         if (typeof parsedFilePathOrContent === 'string') {
+            this.logger.log(LogLevel.INFO, '[checkIfHasTestMethod]' ,'Reading the parsed coverage data')
             const parsedContent = await readFile(parsedFilePathOrContent);
             parsedClass = JSON.parse(parsedContent);
         }else {
             parsedClass = {methods: parsedFilePathOrContent};
         }
         if (!parsedClass.methods) {
+            this.logger.log(LogLevel.ERROR, '[checkIfHasTestMethod]' ,'No methods found')
             return false;
         }
         for (const method of parsedClass.methods) {
@@ -85,47 +101,18 @@ export class ScrapeCoverage {
     }
 
 
-    // scrapeJacocoTable(htmlFilePathTable: string): number[][] {
-    //     // Read the HTML file
-    //     const htmlContent = fs.readFileSync(htmlFilePathTable, 'utf-8');
-        
-    //     // Parse HTML content using jsdom
-    //     const dom = new JSDOM(htmlContent);
-    //     const document = dom.window.document;
-        
-    //     // Find the table with the specified class
-    //     const table = document.querySelector('table.coverage');
-    
-    //     // Find all the rows in the table body
-    //     const rows = table.querySelectorAll('tbody tr');
-    
-    //     // Store rows and their coverage values
-    //     const coverage: CoverageData[] = [];
-    
-    //     for (const row of rows) {
-    //         // Extract the coverage values from the row
-    //         // skip if instruction_coverage and branch_coverage is not found or error
-    //         try {
-    //             const instructionCoverage = parseInt(row.querySelector('td.ctr2').textContent.trim('%'), 10);
-    //             const branchCoverage = parseInt(row.querySelectorAll('td.ctr2')[1].textContent.trim('%'), 10);
-    //             const averageCoverage = (instructionCoverage + branchCoverage) / 2;
-    
-    //             coverage.push({
-    //                 method_name: row.querySelector('td').textContent.trim(),
-    //                 average_coverage: averageCoverage
-    //             });
-    //         } catch (error) {
-    //             continue;
-    //         }
-    //     }
-    
-    //     // Sort the data based on increasing average coverage values
-    //     const sortedData = coverage.sort((a, b) => a.average_coverage - b.average_coverage);
-    
-    //     let pagePath = path.join(PROJECT_FOLDER, "src", "main", "java", ...("org.jfree.chart.renderer.xy".split(".")), "XYDifferenceRenderer.java");
-        
-
-        
-    //     return mtd;
-    // }
+    async findTestMethod(className: string): Promise<Uri>{
+        let testMethodPath = Uri.joinPath(this.vsStorageURL, 'temp', 'test', 'test.java');
+        const uris = await workspace.findFiles('**/' + className + 'Test.java');
+        if (uris.length > 0) {
+            for (const uri of uris) {
+                const content = await readFile(uri);
+                if (content.match(new RegExp("@Test", "gm"))) {
+                    testMethodPath = uri;
+                    break;                    
+                }
+            }
+        }
+        return testMethodPath;
+    }
 }

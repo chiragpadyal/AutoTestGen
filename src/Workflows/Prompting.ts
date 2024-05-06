@@ -24,6 +24,9 @@ export interface PromptAttrTemplate {
 
         // basic creation
         method_complete?: string;
+
+        //repair test case
+        error?: string;
     };
 }
 
@@ -34,14 +37,12 @@ export class Prompting {
             const templatePath = path.join(this._extensionPath, PROMPTDIR, prompt.file);
             const template = fs.readFileSync(templatePath, 'utf8');
             return mustache.render(template, prompt.attrs);
-            // let response = await askGpt(template);
-            // return this.parseCode(response);
         } catch (e: any) {
             throw new Error(e);
         }
     }
 
-    private parseCode(gptResonse: string): string {
+     parseCode(gptResonse: string): string {
         // TODO: write better code block parser
         const hasCodeBlock = gptResonse.includes("```");
         if (hasCodeBlock) {
@@ -50,5 +51,7 @@ export class Prompting {
         }
         return '';
     }
+
+
 
 }
